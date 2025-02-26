@@ -3,7 +3,10 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/go-querystring/query"
 	"github.com/smart-money-trader/okx-go/common"
@@ -108,6 +111,18 @@ func (c *Client) newRequest(r api.IRequest) *fasthttp.Request {
 	return req
 }
 
+// LcFirst 字符串首字母转换为小写
+func LcFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	if r == utf8.RuneError {
+		return s
+	}
+	return string(unicode.ToLower(r)) + s[size:]
+}
+
 // new *Signature
 func (c *Client) newSignature(r api.IRequest) *common.Signature {
 	var body []byte
@@ -115,8 +130,18 @@ func (c *Client) newSignature(r api.IRequest) *common.Signature {
 
 	if r.IsPost() {
 		body, _ = json.Marshal(r.GetParam())
-	} else if values, _ := query.Values(r.GetParam()); len(values) > 0 {
-		path += "?" + values.Encode()
+	} else {
+		values, _ := query.Values(r.GetParam())
+		valuesCopy := url.Values{}
+		for k, v := range values {
+			if len(v[0]) == 0 {
+				continue
+			}
+			valuesCopy.Set(LcFirst(k), v[0])
+		}
+		if len(valuesCopy) > 0 {
+			path += "?" + valuesCopy.Encode()
+		}
 	}
 
 	return c.Auth.Signature(r.GetMethod(), path, string(body), false)

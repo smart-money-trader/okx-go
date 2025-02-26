@@ -9,7 +9,7 @@ import (
 
 func main() {
 	param := &market.GetBooksParam{
-		InstId: "ETH-USDT",
+		InstId: "BTC-USDT",
 	}
 	req, resp := market.NewGetBooks(param)
 	if err := rest.TestClient.Do(req, resp); err != nil {
